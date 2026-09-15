@@ -14,5 +14,19 @@ CHIP PC {
     OUT out[16];
     
     PARTS:
-    //// Replace this comment with your code.
+    //It is in this order since if the reset is true then it will become zero so it will be the last one completed basically it goes down backwards.
+
+    //Loading the register with the output of the previous run meaning it is either the incremented value, loaded value, or the reseted value
+    Register(in=outRes, load=true, out=out, out=outReg);
+    //Incrementing the value of the register
+    Inc16(in=outReg, out=incReg);
+    //Muxing the output of the register with the incremented value based on the inc input
+    Mux16(a=outReg, b=incReg, sel=inc, out=incOut);
+    //Muxing the output of the previous Mux with the input based on the load input, since the load input could give back the in
+    Mux16(a=incOut, b=in, sel=load, out=loadOut);
+    //Muxing the output of the previous Mux with the false values based on the reset input, since the reset input could give back false
+    Mux16(a=loadOut, b=false, sel=reset, out=outRes);   
+
+
+
 }
