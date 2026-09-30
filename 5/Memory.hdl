@@ -26,4 +26,25 @@ CHIP Memory {
 
     PARTS:
 	//// Replace this comment with your code.
+
+    //If the most significant bit of 
+
+    //if 13th bit and 12th bit are 1 we are in ketbaord if 13th bit =1 and 12th bit = 0 we are in screen else we are in RAM
+
+
+    //This dmux will check the 13th and 14th bit if 00 or 01 then we are in RAM is 10 then we are in the screen and if 11 
+    //we are in the keyboard.
+    DMux4Way(in=load, sel=address[13..14], a=RAMLoadOne, b=RAMLoadTwo, c=SLoad, d=KLoad);
+
+    //Make the ramload 1 thing
+    Or(a=RAMLoadOne, b=RAMLoadTwo, out=RAMLoad);
+
+    //Load everything to get the proper outputs
+    RAM16K(in=in, load=RAMLoad, address=address[0..13], out=outRAM);
+    Screen(in=in, load=SLoad, address=address[0..12], out=outScreen);
+    Keyboard(out=outKeyboard);
+
+    //Through selection of two bit 13 adn 14 we are checking with input we want to use as the output
+    Mux4Way16(a=outRAM, b=outRAM, c=outScreen, d=outKeyboard, sel=address[13..14], out=out);
+
 }

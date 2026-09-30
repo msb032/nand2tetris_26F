@@ -33,4 +33,66 @@ CHIP CPU {
 
     PARTS:
 	//// Replace this comment with your code.
+
+
+    //Mux taking in the instruction and going into the A Register 
+    //It will take the instruction if the input is a A intruction then load A register
+    //The bit that determines that is the most significant bit in the instruction, if 0 then A intruction if 1 then C instruction
+    //When the MSB of instruction is 1 the ALUOut is selected
+    Mux16(a=instruction, b=ALUOut, sel=instruction[15], out=ARegInput);
+
+    //It is a A instruction if the MSB is not 1 and we must load the A register if the 5th bit is also high since that determines
+    //whether to load or not
+    And(a=instruction[15], b=instruction[5], out=loadAFromC);
+    Not(in=instruction[15], out=isAInstruction);
+    Or(a=isAInstruction, b=loadAFromC, out=ARegLoad);
+
+    //This will use the above things to load the a register
+    ARegister(in=ARegInput, load=ARegLoad, out=ARegOutput);
+
+    //addressM this is just taking the ARegOutput and making it a 15 bit sequence
+    Or16(a=false, b=ARegOutput, out[0..14]=addressM);
+
+
+    //Mux that goes into the ALU and then the ALU output the selection bit is instruction[12]
+    Mux16(a=ARegOutput, b=inM, sel=instruction[12], out=ALUInputTwo);
+    //The ALU takes in teh 11, 10, 9, 8, 7, and 6 of the instruction 
+    ALU(x=DRegOutput, y=ALUInputTwo, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], 
+    f=instruction[7], no=instruction[6], out=ALUOut, zr=ZRout, ng=NGout);
+
+    //This will tell you the outM based on the ALUout
+    Or16(a=false, b=ALUOut, out=outM);
+
+
+    //The D register load for d is determiend by bit 15 and bit 4 
+    And(a=instruction[15], b=instruction[4], out=loadD);
+    DRegister(in=ALUOut, load=loadD, out=DRegOutput);
+
+    //writeM based on instruction bit 15 and 3
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    //There needs to be logic to determine load and inc 
+
+    //Positive Flag (this is if it is not equal to zero or negative then it is positive)
+    Or(a=ZRout, b=NGout, out=notPosOut);
+    Not(in=notPosOut, out=PostOut);
+
+    //if positive and j[0] = 1
+    And(a=PostOut, b=instruction[0], out=JGT);
+    //if zero and j[1] = 1
+    And(a=ZRout, b=instruction[1], out=JEQ);
+    //if less then and j[2] = 1
+    And(a=NGout, b=instruction[2], out=JLT);
+
+    //If this is 1 then there is a jump
+    Or(a=JGT, b=JEQ, out=Some);
+    Or(a=Some, b=JLT, out=willJump);
+
+    //Only jump if c instruction
+    And(a=instruction[15], b=willJump, out=willJumpTwo);
+    //increment if not jumping
+    Not(in=willJumpTwo, out=willInc);
+
+    //Using baove to get the program counter working, the PC out is a 15 bit thing so we need to take the first 15 bits of the out
+    PC(in=ARegOutput, load=willJumpTwo, inc=willInc, reset=reset, out[0..14]=pc);
 }
